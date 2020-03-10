@@ -50,142 +50,34 @@ const VoiceResponse = require('twilio').twiml.VoiceResponse
 
 // Create http server and run it
 
-app.get('/token', async (req, res) => {
-  try {
-    const outgoingApplicationSid = config.twimlAppSid
-    const identity = 'user'
+app.post('/call-service/recorder-status', async (req, res) => {
+  // todo: save recorder url to database
 
-    console.log(config.pushCredentialId)
-    const clients = await client.newKeys.create()
-    const voiceGrant = new VoiceGrant({
-      outgoingApplicationSid: outgoingApplicationSid,
-      incomingAllow: true, // Optional: add to allow incoming calls
-      pushCredentialSid: config.pushCredentialId,
-    })
+  const recording = client.recordings(req.body.RecordingSid)
+    .fetch()
 
-    // client.calls
-    //   .create({
-    //     url: 'http://demo.twilio.com/docs/voice.xml',
-    //     to: '+6282285265855',
-    //     from: '+19032074645',
-    //   })
-    //   .then(call => {
-    //     console.log('call.sid')
-    //     console.log(call.sid)
-    //   }).catch(e => {
-    //     console.log(e)
-    //   })
+  console.log(recording)
 
-    const token = new AccessToken(accountSid, clients.sid, clients.secret)
-
-    token.addGrant(voiceGrant)
-    token.identity = identity
-    res.json({
-      identity: identity,
-      token: token.toJwt(),
-    })
-
-    // const capability = new ClientCapability({
-    //   accountSid: accountSid,
-    //   authToken: authToken,
-    // })
-
-    // capability.addScope(new ClientCapability.IncomingClientScope('user'))
-    // capability.addScope(
-    //   new ClientCapability.OutgoingClientScope({
-    //     applicationSid: 'AP28cd350a2dfd7e4f09337ad11c17090c',
-    //     clientName: 'user',
-    //   })
-    // )
-
-    // const token = capability.toJwt()
-
-    // res.set('Content-Type', 'application/jwt')
-    // res.json({
-    //   identity: identity,
-    //   token: token,
-    // })
-  } catch (e) {
-    throw e
-  }
+  res.json({
+    response: 'Recorder saved',
+  })
 })
 
-app.post('/voice', async (req, res) => {
-  console.log(req.body)
-  console.log('halo')
-  // https://handler.twilio.com/twiml/EH9eb2091baed8d9c953303f1209df2ff0
-  client.calls
-    .create({
-      url: 'http://demo.twilio.com/docs/voice.xml',
-      to: 'client:user',
-      from: '+19032074645',
-    })
-    .then(call => console.log(call.sid))
-})
+app.post('/call-service/conference-call', (req, res) => {
+  const { room } = req.body
 
-app.post('/halo', async (req, res) => {
-  console.log(req.body)
-  console.log('halo')
-  // https://handler.twilio.com/twiml/EH9eb2091baed8d9c953303f1209df2ff0
-  // client.calls
-  //   .create({
-  //     url: 'http://demo.twilio.com/docs/voice.xml',
-  //     to: 'client:user',
-  //     from: '+19032074645',
-  //   })
-  //   .then(call => console.log(call.sid))
-})
+  const voiceResponse = new VoiceResponse()
 
-app.post('/voice-xml', (req, res) => {
-  // res.type('application/xml')
-  // res.set('Content-Type', 'text/xml')
-  // var example5 = [
-  //   {
-  //     toys: [
-  //       {_attr: {decade: '80s', locale: 'US'}},
-  //       {rumah: 'Transformers'},
-  //       {toy: [{_attr: {knowing: 'half the battle'}}, 'GI Joe']},
-  //       {
-  //         toy: [
-  //           {name: 'He-man'},
-  //           {description: {_cdata: '<strong>Master of the Universe!</strong>'}},
-  //         ],
-  //       },
-  //     ],
-  //   },
-  // ]
+  const dial = voiceResponse.dial()
 
-  // res.send(xml(example5))
+  dial.conference({
+    record: 'record-from-start',
+    recordingStatusCallback: `${mainUrl}/call-service/recorder-status`,
+  }, '1234')
 
-  // The recipient of the call, a phone number or a client
-  let to = req.body.to;
+  // console.log(`Response:${voiceResponse.toString()}`)
 
-  const voiceResponse = new VoiceResponse();
-
-  // if (!to) {
-    console.log(req.body);
-    console.log(req.body.To);
-    const dial = voiceResponse.dial();
-
-    // dial.number('+6282288269666');
-    dial.conference({
-      record: 'record-from-start',
-      recordingStatusCallback: 'https://3ce4d44c.ngrok.io/halo',
-    }, 'Room 1234');
-
-    // const dial = await voiceResponse.dial({
-    //   callerId: 'client:OldSchoolTammyHanover',
-    // });
-    // dial.client('user');
-  // } else if (isNumber(to)) {
-  //   const dial = voiceResponse.dial({callerId: '+19032074645'});
-  //   dial.number('+6282288269666');
-  // } else {
-  //   const dial = voiceResponse.dial({callerId: callerId});
-  //   dial.client('client:user');
-  // }
-  console.log('Response:' + voiceResponse.toString());
-  return res.send(voiceResponse.toString());
+  res.send(voiceResponse.toString())
 })
 
 app.listen(port, function() {
