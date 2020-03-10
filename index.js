@@ -72,7 +72,7 @@ app.post('/call-service/conference-call', (req, res) => {
 
   dial.conference({
     record: 'record-from-start',
-    recordingStatusCallback: `${mainUrl}/call-service/recorder-status`,
+    recordingStatusCallback: `${config.mainUrl}/call-service/recorder-status`,
   }, '1234')
 
   // console.log(`Response:${voiceResponse.toString()}`)
